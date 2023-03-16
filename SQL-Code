@@ -1,0 +1,83 @@
+--SECTION B
+
+CREATE OR REPLACE FUNCTION simplified_date(rental_date timestamp)
+RETURNS int
+LANGUAGE plpgsql
+AS $$
+DECLARE rental_month int;
+BEGIN
+SELECT EXTRACT (MONTH FROM rental_date) INTO rental_month;
+RETURN rental_month;
+END; $$
+
+
+SELECT simplified_date('2007-06-05');
+
+
+
+--Section C
+
+DROP TABLE IF EXISTS detailed;
+
+CREATE TABLE detailed (
+rental_id int,
+first_name varchar (45),
+last_name varchar (45),
+customer_id int,
+email varchar(90),
+rental_date timestamp,
+return_date timestamp
+);
+
+SELECT *
+FROM detailed;
+
+--SUMMARY TABLE
+----TRIGGER
+
+CREATE TRIGGER summary_table_refresh
+AFTER INSERT ON detailed
+FOR EACH STATEMENT
+EXECUTE PROCEDURE summary_refresh_function();
+
+SELECT * FROM detailed
+SELECT * FROM summary
+
+-----------------------------------------------
+--SECTION F
+
+CREATE PROCEDURE refresh_tables()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+DELETE FROM detailed;
+
+INSERT INTO detailed(
+rental_id,
+rental_date,
+return_date,
+customer_id,
+first_name,
+last_name,
+email
+)
+
+SELECT
+r.rental_id, r.rental_date, r.return_date,
+c.customer_id, c.first_name, c.last_name, c.email
+FROM customer AS c
+INNER JOIN rental AS r ON r.customer_id = c.customer_id;
+END; $$
+
+--CALL PROCEDURE
+
+CALL refresh_tables();
+
+--View tables
+
+SELECT *
+FROM detailed;
+
+SELECT *
+FROM summary; 
